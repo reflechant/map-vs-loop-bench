@@ -1,0 +1,30 @@
+[package]
+name = "map-vs-loop-bench"
+version = "0.1.0"
+edition = "2024"
+description = "When is linear search faster than a HashMap, BTreeMap, or trie?"
+
+[dependencies]
+base64 = "0.22"
+plotters = { version = "0.3", default-features = false, features = [
+    "ab_glyph",
+    "all_elements",
+    "bitmap_backend",
+    "bitmap_encoder",
+    "line_series",
+    "point_series",
+] }
+qp-trie = "0.8"
+rand = "0.9"
+ttf-noto-sans = "0.1"
+
+[lib]
+bench = false
+
+[[bench]]
+name = "ints"
+harness = false
+
+[[bench]]
+name = "strings"
+harness = false
