@@ -19,24 +19,34 @@ pub const MISSING_STRING: &str = "________________";
 pub struct IntData {
     pub keys: Vec<u64>,
     pub missing: u64,
+    pub missing_keys: Vec<u64>,
 }
 
 pub struct StringData {
     pub keys: Vec<String>,
     pub missing: String,
+    pub missing_keys: Vec<String>,
 }
 
 impl IntData {
     pub fn generate(n: usize) -> Self {
         let mut rng = StdRng::seed_from_u64(SEED ^ n as u64);
-        let mut set = HashSet::with_capacity(n + 1);
-        while set.len() < n + 1 {
+        let count = (n * 2).max(2);
+        let mut set = HashSet::with_capacity(count);
+        while set.len() < count {
             set.insert(rng.random::<u64>());
         }
-        let mut keys: Vec<u64> = set.into_iter().collect();
-        let missing = keys.pop().expect("reserved one extra key as the miss");
+        let all: Vec<u64> = set.into_iter().collect();
+        let (keys_slice, missing_slice) = all.split_at(n);
+        let keys = keys_slice.to_vec();
+        let missing_keys = missing_slice.to_vec();
+        let missing = missing_keys[0];
         debug_assert_eq!(keys.len(), n);
-        Self { keys, missing }
+        Self {
+            keys,
+            missing,
+            missing_keys,
+        }
     }
 
     pub fn mid_key(&self) -> u64 {
@@ -51,9 +61,23 @@ impl StringData {
         while set.len() < n {
             set.insert(random_string(&mut rng, STRING_LEN));
         }
+        let keys: Vec<String> = set.into_iter().collect();
+
+        let count = n.max(1);
+        let mut missing_set = HashSet::with_capacity(count);
+        let keys_set: HashSet<&str> = keys.iter().map(|s| s.as_str()).collect();
+        while missing_set.len() < count {
+            let s = random_string(&mut rng, STRING_LEN);
+            if !keys_set.contains(s.as_str()) {
+                missing_set.insert(s);
+            }
+        }
+        let missing_keys: Vec<String> = missing_set.into_iter().collect();
+
         Self {
-            keys: set.into_iter().collect(),
+            keys,
             missing: MISSING_STRING.to_owned(),
+            missing_keys,
         }
     }
 
@@ -123,6 +147,12 @@ mod tests {
         assert!(!linear_contains_u64(&data.keys, data.missing));
         assert!(!map.contains_key(&data.missing));
         assert!(!tree.contains_key(&data.missing));
+        assert_eq!(data.missing_keys.len(), 128);
+        for k in &data.missing_keys {
+            assert!(!linear_contains_u64(&data.keys, *k));
+            assert!(!map.contains_key(k));
+            assert!(!tree.contains_key(k));
+        }
     }
 
     #[test]
@@ -143,6 +173,13 @@ mod tests {
         assert!(!tree.contains_key(&data.missing));
         assert!(!trie.contains_key_str(&data.missing));
         assert_eq!(data.missing.len(), STRING_LEN);
+        assert_eq!(data.missing_keys.len(), 64);
+        for k in &data.missing_keys {
+            assert!(!linear_contains_str(&data.keys, k));
+            assert!(!map.contains_key(k));
+            assert!(!tree.contains_key(k));
+            assert!(!trie.contains_key_str(k));
+        }
     }
 
     #[test]

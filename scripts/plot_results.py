@@ -37,6 +37,7 @@ COLOR_MAP = {
     "linear_max": "#d62728",   # Red
     "hashmap": "#1f77b4",      # Blue
     "btree": "#ff7f0e",        # Orange
+    "btree_max": "#b35806",    # Dark Amber / Rust
     "trie": "#9467bd",         # Purple
 }
 
@@ -45,6 +46,7 @@ LABEL_MAP = {
     "linear_max": "Linear scan (miss / full scan)",
     "hashmap": "std::HashMap (SipHash)",
     "btree": "std::BTreeMap",
+    "btree_max": "std::BTreeMap (miss / max)",
     "trie": "qp-trie",
 }
 
@@ -53,6 +55,7 @@ MARKER_MAP = {
     "linear_max": "s",
     "hashmap": "^",
     "btree": "D",
+    "btree_max": "d",
     "trie": "v",
 }
 
@@ -75,7 +78,7 @@ def plot_single_bench(csv_path: Path, output_png: Path, title: str, subtitle: st
     
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    columns = [col for col in df.columns if col != "N"]
+    columns = [col for col in df.columns if col not in ("N", "btree_mid")]
     
     for col in columns:
         color = COLOR_MAP.get(col, "#333333")
@@ -129,7 +132,7 @@ def plot_comparison(
     
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
     
-    columns = [col for col in df_laptop.columns if col != "N"]
+    columns = [col for col in df_laptop.columns if col not in ("N", "btree_mid")]
     ticks = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
     
     # Laptop plot
@@ -158,20 +161,20 @@ def plot_comparison(
     ax1.legend(frameon=True, loc="upper left")
 
     # RPi plot
-    for col in columns:
-        if col in df_rpi.columns:
-            color = COLOR_MAP.get(col, "#333333")
-            label = LABEL_MAP.get(col, col)
-            marker = MARKER_MAP.get(col, "o")
-            ax2.plot(
-                df_rpi["N"],
-                df_rpi[col],
-                label=label,
-                color=color,
-                marker=marker,
-                markersize=6,
-                linewidth=2.2,
-            )
+    rpi_columns = [col for col in df_rpi.columns if col not in ("N", "btree_mid")]
+    for col in rpi_columns:
+        color = COLOR_MAP.get(col, "#333333")
+        label = LABEL_MAP.get(col, col)
+        marker = MARKER_MAP.get(col, "o")
+        ax2.plot(
+            df_rpi["N"],
+            df_rpi[col],
+            label=label,
+            color=color,
+            marker=marker,
+            markersize=6,
+            linewidth=2.2,
+        )
     ax2.set_xscale("log", base=2)
     ax2.set_yscale("log")
     ax2.set_xticks(ticks)

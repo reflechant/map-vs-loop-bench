@@ -35,7 +35,7 @@ This crate measures that crossover across different CPU architectures:
 
 | Target Platform | Linear Scan Hit (`linear_mid`) Beats HashMap Up To | Linear Scan Miss (`linear_max`) Beats HashMap Up To |
 |---|---|---|
-| **Laptop (Intel i5-1135G7)** | **N = 96** | **N = 48** |
+| **Laptop (Intel i5-1135G7)** | **N = 128** | **N = 64** |
 | **Raspberry Pi 4 Model B (Cortex-A72)** | **N = 64** | **N = 48** |
 
 ---
@@ -48,7 +48,7 @@ This crate measures that crossover across different CPU architectures:
 
 | Target Platform | Linear Scan (`linear_mid`) Fastest Up To | `qp-trie` Fastest In Range | `std::HashMap` Dominates At |
 |---|---|---|---|
-| **Laptop (Intel i5-1135G7)** | **N = 8** | **N = 16 .. 32** | **N ≥ 48** |
+| **Laptop (Intel i5-1135G7)** | **N = 8** | **N = 16 .. 96** | **N ≥ 128** |
 | **Raspberry Pi 4 Model B (Cortex-A72)** | **N = 8** | **N = 16 .. 48** | **N ≥ 64** |
 
 ---
@@ -115,7 +115,7 @@ the number.
 | `linear_mid` | `Vec` | key sitting at index `n/2` (typical hit) |
 | `linear_max` | `Vec` | a key that is **not** there (full scan) |
 | `hashmap` | `std::HashMap` | a present key, rotating so one hot key cannot win on prediction |
-| `btree` | `std::BTreeMap` | same as hashmap |
+| `btree_max` | `std::BTreeMap` | rotating absent key (full depth / miss) |
 | `trie` | `qp-trie` | strings only |
 
 `HashMap` uses the default hasher (SipHash). A faster hasher would move its
@@ -127,6 +127,7 @@ plot — finding an arbitrary key in a heap is *O(n)* with worse locality than
 
 - **X** is N (log scale). **Y** is nanoseconds per lookup (log scale).
 - The linear series climb with *O(n)*; HashMap stays roughly flat (*O(1)*).
+- Trees climb with *O(log n)*, with `btree_max` (worst-case / absent key full depth search).
 - Where they cross, the map starts to pay for itself.
 - `linear_max` crosses first (a miss already scanned the whole array).
 - `linear_mid` crosses later (a hit only walks half the array on average).

@@ -26,7 +26,7 @@ Construction is not timed. HashMap uses std SipHash.
   linear_mid   Vec scan, hit at index n/2          (~n/2 compares)
   linear_max   Vec scan, key absent                (full scan)
   hashmap      HashMap, rotating present key       (~O(1))
-  btree        BTreeMap, rotating present key      (~O(log n))
+  btree_max    BTreeMap, rotating absent key       (~O(log n), miss)
 
 log–log: X = N, Y = ns/lookup. Linear climbs; HashMap is the flat line.",
         &series,
@@ -46,7 +46,7 @@ Construction is not timed. HashMap uses std SipHash. Trie is qp-trie.
   linear_mid   Vec scan, hit at index n/2
   linear_max   Vec scan, key absent
   hashmap      HashMap, rotating present key
-  btree        BTreeMap, rotating present key
+  btree_max    BTreeMap, rotating absent key       (miss)
   trie         qp-trie, rotating present key
 
 log–log: X = N, Y = ns/lookup.",
@@ -216,7 +216,7 @@ fn measure_int_series() -> Vec<Series> {
     let mut linear_mid = Vec::with_capacity(SIZES.len());
     let mut linear_max = Vec::with_capacity(SIZES.len());
     let mut hashmap = Vec::with_capacity(SIZES.len());
-    let mut btree = Vec::with_capacity(SIZES.len());
+    let mut btree_max = Vec::with_capacity(SIZES.len());
 
     for &n in SIZES {
         let data = IntData::generate(n);
@@ -225,6 +225,7 @@ fn measure_int_series() -> Vec<Series> {
         let mid = data.mid_key();
         let missing = data.missing;
         let keys = data.keys;
+        let missing_keys = data.missing_keys;
 
         linear_mid.push(measure_ns(|| {
             black_box_contains(linear_contains_u64(&keys, black_box(mid)));
@@ -240,9 +241,10 @@ fn measure_int_series() -> Vec<Series> {
             black_box_contains(map.contains_key(&black_box(k)));
         }));
 
+
         let mut i = 0usize;
-        btree.push(measure_ns(|| {
-            let k = keys[i % keys.len()];
+        btree_max.push(measure_ns(|| {
+            let k = missing_keys[i % missing_keys.len()];
             i = i.wrapping_add(1);
             black_box_contains(tree.contains_key(&black_box(k)));
         }));
@@ -253,7 +255,7 @@ fn measure_int_series() -> Vec<Series> {
         series("linear_mid", [44, 160, 44], linear_mid),
         series("linear_max", [214, 39, 40], linear_max),
         series("hashmap", [31, 119, 180], hashmap),
-        series("btree", [255, 127, 14], btree),
+        series("btree_max", [179, 88, 6], btree_max),
     ]
 }
 
@@ -261,7 +263,7 @@ fn measure_string_series() -> Vec<Series> {
     let mut linear_mid = Vec::with_capacity(SIZES.len());
     let mut linear_max = Vec::with_capacity(SIZES.len());
     let mut hashmap = Vec::with_capacity(SIZES.len());
-    let mut btree = Vec::with_capacity(SIZES.len());
+    let mut btree_max = Vec::with_capacity(SIZES.len());
     let mut trie = Vec::with_capacity(SIZES.len());
 
     for &n in SIZES {
@@ -272,6 +274,7 @@ fn measure_string_series() -> Vec<Series> {
         let mid = data.mid_key().to_owned();
         let missing = data.missing.clone();
         let keys = data.keys;
+        let missing_keys = data.missing_keys;
 
         linear_mid.push(measure_ns(|| {
             black_box_contains(linear_contains_str(&keys, black_box(mid.as_str())));
@@ -287,9 +290,10 @@ fn measure_string_series() -> Vec<Series> {
             black_box_contains(map.contains_key(black_box(k)));
         }));
 
+
         let mut i = 0usize;
-        btree.push(measure_ns(|| {
-            let k = keys[i % keys.len()].as_str();
+        btree_max.push(measure_ns(|| {
+            let k = missing_keys[i % missing_keys.len()].as_str();
             i = i.wrapping_add(1);
             black_box_contains(tree.contains_key(black_box(k)));
         }));
@@ -306,7 +310,7 @@ fn measure_string_series() -> Vec<Series> {
         series("linear_mid", [44, 160, 44], linear_mid),
         series("linear_max", [214, 39, 40], linear_max),
         series("hashmap", [31, 119, 180], hashmap),
-        series("btree", [255, 127, 14], btree),
+        series("btree_max", [179, 88, 6], btree_max),
         series("trie", [148, 103, 189], trie),
     ]
 }
